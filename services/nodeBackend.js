@@ -57,28 +57,41 @@ var loginUserWS = function(req, res){
 
 var forgotPasswordWS = function(req, res){
 	var client = connectToDB();
-	var sql = "INSERT INTO passwordreset VALUES (?,?,?,curdate(), 0)";
-	var user = getUserDetails(req.body.email);
-	client.query(sql, [uId.uid(), user.userid, guid.create()], function(err){
-		if(err) throw err;
-	});
+	var respond= function(user){ 
+		console.log("Inside the respond function: user is "+user+" and user id is "+user.userid);
+		var sql = "INSERT INTO passwordreset VALUES (?,?,?,curdate(), 0)";
+		if(user == null)
+			res.send("Email not associated to any user");
+		else
+		{
+			var forgotpasswordid = 10;//uid(10);
+			var forgotpwdguid = guid.create();
+			client.query(sql, [forgotpasswordid, user.userid, forgotpwdguid], function(err){
+			if(err) throw err;
+			console.log("uid "+forgotpasswordid+" guid "+forgotpwdguid+" email "+req.body.request.email);
+			});
+		}
+	}
+	getUserDetails(req.body.request.email, respond);
+	//console.log(uId);
 }
 
-var getUserDetails = function(email) {
+var getUserDetails = function(email, respond) {
 	var client = connectToDB();
 	var sql = "SELECT userid, name, email from users where email = ?";
-	var user = null;
 	client.query(sql, [email], function(err, rows, fields){
-		if(err) throw err;
+		if(err) 
+			throw err;
 		if(rows.length <= 0)
 			return null;
-		user.userid = rows[0].userid;
-		user.name = rows[0].name;
-		user.email = rows[0].email;
+		var userid = rows[0].userid;
+		var name = rows[0].name;
+		var email = rows[0].email;
+
+		var user = {userid: userid, name: name, email: email};
+		respond(user);
 	}
 	);
-
-	return user;
 }
 
 
@@ -86,6 +99,7 @@ var getUserDetails = function(email) {
 var registerapp = app.get('/registerUser', registerUserWS);
 var registerapppost = app.post('/registerUser', registerUserWS);
 var loginapp = app.post('/login', loginUserWS);
+var forgotpasswordapp = app.post('/forgotpassword', forgotPasswordWS);
 
 var server = app.listen(3000, function () {
   var host = server.address().address;
