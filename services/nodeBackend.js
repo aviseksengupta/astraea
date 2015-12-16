@@ -4,19 +4,44 @@ var md5 = require('MD5');
 var app = express();
 var bodyParser = require('body-parser');
 var guid = require('guid');
-var uId = require('uid');
+var nodemailer = require('nodemailer');
+
 app.use(bodyParser.json());
 
 var connectToDB = function(){
 	var client = mysql.createConnection({
 		host: 'localhost',
 		user: 'root',
-		password: 'avisek123',
+		password: 'caprediem',
 		port: 3306,
 		database: 'demo'
 		});
 	return client;
 };
+var sendMail = function(mailid, mailsubject, body){
+	var transporter = nodemailer.createTransport({
+		service: 'Gmail',
+	        auth: {
+		        user: 'aviseksengupta@gmail.com',
+			pass: 'AuthId1201@viseK'
+		    }
+	});
+	
+	var mailOptions = {
+		from: 'aviseksengupta@gmail.com',
+		to: mailid, 
+		subject: mailsubject, 
+		text: body, 
+		html: '<b>Hello world</b>'
+	};
+	
+	transporter.sendMail(mailOptions, function(error, info){
+		if(error){
+			return console.log(error);
+		        }
+	        console.log('Message sent: ' + info.response);
+	});
+}	
 
 //Webservice - register new user
 var registerUserWS = function(req, res){
@@ -31,7 +56,7 @@ var registerUserWS = function(req, res){
 		console.log("Connected to the database");
 	});
 	console.log(req.body);
-	var sql = "INSERT INTO users VALUES ("+req.body.request.userid+",'"+ req.body.request.name+"','"+ req.body.request.email+"','"+ md5(req.body.request.password)+"')";
+	var sql = "INSERT INTO users VALUES (NULL,'"+ req.body.request.name+"','"+ req.body.request.email+"','"+ md5(req.body.request.password)+"')";
 	client.query(sql);
 	client.end(function(err){});
 	res.send("Done");
@@ -63,13 +88,15 @@ var forgotPasswordWS = function(req, res){
 			res.send("Email not associated to any user");
 		else
 		{
-			var sql = "INSERT INTO passwordreset VALUES ('"+forgotpasswordid+"','"+user.userid+"','"+forgotpwdguid+"',curdate(), 0)";
-			var forgotpasswordid = 10;//uid(10);
+			var forgotpasswordid = 500;//uid(10);
 			var forgotpwdguid = guid.create();
+			var sql = "INSERT INTO passwordreset VALUES (NULL,'"+user.userid+"','"+forgotpwdguid+"',curdate(), 0)";
 			client.query(sql,  function(err){
 			if(err) throw err;
 			});
 			console.log("uid "+forgotpasswordid+" guid "+forgotpwdguid+" email "+req.body.request.email);
+			sendMail(req.body.request.email, "Password Reset", "Hi, You requested your password to be reset. Please follow the link below to do the same.\nhttp://localhost/resetPassword/"+forgotpwdguid);
+			res.send("Email has been sent to you\n");
 		}
 	}
 	getUserDetails(req.body.request.email, respond);
@@ -93,8 +120,6 @@ var getUserDetails = function(email, respond) {
 	}
 	);
 }
-
-
 
 var registerapp = app.get('/registerUser', registerUserWS);
 var registerapppost = app.post('/registerUser', registerUserWS);
