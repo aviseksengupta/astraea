@@ -3,7 +3,7 @@ var mysql = require('mysql');
 var md5 = require('MD5');
 var app = express();
 var bodyParser = require('body-parser');
-var guid = require('Guid');
+var guid = require('guid');
 var uId = require('uid');
 app.use(bodyParser.json());
 
@@ -11,7 +11,7 @@ var connectToDB = function(){
 	var client = mysql.createConnection({
 		host: 'localhost',
 		user: 'root',
-		password: 'caprediem',
+		password: 'avisek123',
 		port: 3306,
 		database: 'demo'
 		});
@@ -59,17 +59,17 @@ var forgotPasswordWS = function(req, res){
 	var client = connectToDB();
 	var respond= function(user){ 
 		console.log("Inside the respond function: user is "+user+" and user id is "+user.userid);
-		var sql = "INSERT INTO passwordreset VALUES (?,?,?,curdate(), 0)";
 		if(user == null)
 			res.send("Email not associated to any user");
 		else
 		{
+			var sql = "INSERT INTO passwordreset VALUES ('"+forgotpasswordid+"','"+user.userid+"','"+forgotpwdguid+"',curdate(), 0)";
 			var forgotpasswordid = 10;//uid(10);
 			var forgotpwdguid = guid.create();
-			client.query(sql, [forgotpasswordid, user.userid, forgotpwdguid], function(err){
+			client.query(sql,  function(err){
 			if(err) throw err;
-			console.log("uid "+forgotpasswordid+" guid "+forgotpwdguid+" email "+req.body.request.email);
 			});
+			console.log("uid "+forgotpasswordid+" guid "+forgotpwdguid+" email "+req.body.request.email);
 		}
 	}
 	getUserDetails(req.body.request.email, respond);
@@ -80,8 +80,8 @@ var getUserDetails = function(email, respond) {
 	var client = connectToDB();
 	var sql = "SELECT userid, name, email from users where email = ?";
 	client.query(sql, [email], function(err, rows, fields){
-		if(err) 
-			throw err;
+	//	if(err) 
+	//		throw err;
 		if(rows.length <= 0)
 			return null;
 		var userid = rows[0].userid;
